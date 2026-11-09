@@ -88,6 +88,14 @@ const server = http.createServer((req, res) => {
         const count = parsed.success ? parsed.data.count : 8;
         const room = roomManager.get(roomId) ?? roomManager.create(roomId);
         const added = room.match.addBots(count);
+        const playersList = [...room.players.values()].map((p) => ({
+          id: p.id,
+          name: p.name,
+          score: 0,
+        }));
+        for (const p of room.players.values()) {
+          p.sendJson({ type: 'players', players: playersList });
+        }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, added: added.length, total: room.match.world.ships.length }));
       } catch (_err: unknown) {

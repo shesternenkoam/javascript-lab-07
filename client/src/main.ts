@@ -83,6 +83,25 @@ async function bootstrap(_roomData: { room: string; name: string }): Promise<voi
   }
 }
 
+let activeRoom: string | null = null;
+
+const addBotsBtn = document.getElementById('add-bots-btn') as HTMLButtonElement | null;
+addBotsBtn?.addEventListener('click', async () => {
+  if (!activeRoom) return;
+  addBotsBtn.disabled = true;
+  addBotsBtn.textContent = '⏳ Додаємо...';
+  try {
+    await fetch(`/api/rooms/${encodeURIComponent(activeRoom)}/bots`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count: 8 }),
+    });
+    addBotsBtn.textContent = '🤖 Додати ще 8 ботів';
+  } finally {
+    addBotsBtn.disabled = false;
+  }
+});
+
 function initLobby(): void {
   const lobby = new Lobby();
   const uiContainer = document.getElementById('lobby-ui');
@@ -103,10 +122,22 @@ function initLobby(): void {
 
   lobby.onJoin = (detail) => {
     const { room, name } = detail;
+    activeRoom = room;
     console.log(`Гравець ${name} увійшов у кімнату ${room}`);
 
     if (uiContainer) {
       uiContainer.style.display = 'none';
+    }
+
+    // Auto-spawn bots if requested via query param, e.g. ?bots=8
+    const botsParam = new URLSearchParams(window.location.search).get('bots');
+    const botsCount = botsParam ? Number(botsParam) : 0;
+    if (botsCount > 0) {
+      fetch(`/api/rooms/${encodeURIComponent(room)}/bots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count: botsCount }),
+      }).catch(() => {});
     }
 
     canvas.style.display = 'block';

@@ -305,7 +305,7 @@ export class NetGame {
       }
       for (const s of world.ships) {
         if (s.id === me || s.respawn > 0) continue;
-        this.drawShip(s, this.colorOf(s.id), this.players.get(s.id));
+        this.drawShip(s, this.colorOf(s.id), this.players.get(s.id) ?? `Bot #${s.id}`);
       }
     }
     for (const b of this.predictor.localBullets) this.drawBullet(b, '#fff59d');
