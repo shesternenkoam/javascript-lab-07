@@ -142,6 +142,12 @@ export const SnapshotMessageSchema = z.object({
   asteroids: z.array(AsteroidSnapshotSchema),
 });
 
+export const ServerChatMessageSchema = z.object({
+  type: z.literal('chat'),
+  sender: z.string(),
+  text: z.string().max(200),
+});
+
 export const ServerMessageSchema = z.discriminatedUnion('type', [
   WelcomeMessageSchema,
   PongMessageSchema,
@@ -149,6 +155,7 @@ export const ServerMessageSchema = z.discriminatedUnion('type', [
   ServerConfigMessageSchema,
   ErrorMessageSchema,
   SnapshotMessageSchema,
+  ServerChatMessageSchema,
 ]);
 
 export type WelcomeMessage = z.infer<typeof WelcomeMessageSchema>;
@@ -157,6 +164,7 @@ export type PlayersMessage = z.infer<typeof PlayersMessageSchema>;
 export type ServerConfigMessage = z.infer<typeof ServerConfigMessageSchema>;
 export type ErrorMessage = z.infer<typeof ErrorMessageSchema>;
 export type SnapshotMessage = z.infer<typeof SnapshotMessageSchema>;
+export type ServerChatMessage = z.infer<typeof ServerChatMessageSchema>;
 
 export type ServerMessage =
   | WelcomeMessage
@@ -164,7 +172,8 @@ export type ServerMessage =
   | PlayersMessage
   | ServerConfigMessage
   | ErrorMessage
-  | Snapshot;
+  | Snapshot
+  | ServerChatMessage;
 
 // parseClientMessage: Result-style parsing that never throws
 export function parseClientMessage(data: unknown): Result<ClientMessage> {

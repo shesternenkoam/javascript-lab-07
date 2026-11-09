@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 import { WebSocketServer, type WebSocket, type RawData } from 'ws';
 import {
   MAX_PLAYERS, TICK_RATE, WORLD_W, WORLD_H,
-  parseClientMessage, sanitizeInput, asEntityId,
+  parseClientMessage, sanitizeInput, asEntityId, TokenBucket,
   type ClientMessage, type InputMessage, type JoinMessage,
   type PingMessage, type ConfigMessage, type ChatMessage,
 } from 'shared';
@@ -15,13 +15,10 @@ export function setupWebSocket(server: Server): WebSocketServer {
   wss.on('connection', (socket: WebSocket) => {
     let currentRoom: Room | null = null;
     let currentPlayer: Player | null = null;
-    let codec: 'json' | 'binary' = 'binary';
+    const codec: 'json' | 'binary' = 'binary';
     const link = new LinkSim();
 
-    let messageCount = 0;
-    const rateLimitInterval = setInterval(() => {
-      messageCount = 0;
-    }, 1000);
+    const rateLimiter = new TokenBucket(40, 30, Date.now()); // 40 max burst, 30 refill/sec
 
     const sendJson = (msg: unknown): void => {
       if (socket.readyState !== socket.OPEN) return;
@@ -57,11 +54,7 @@ export function setupWebSocket(server: Server): WebSocketServer {
     const handleJoin = (msg: JoinMessage): void => {
       if (currentPlayer) return;
 
-      const room = roomManager.get(msg.room);
-      if (!room) {
-        socket.close(1008, 'Room not found');
-        return;
-      }
+      const room = roomManager.get(msg.room) ?? roomManager.create(msg.room);
       if (room.players.size >= MAX_PLAYERS) {
         socket.close(1008, 'Room full');
         return;
@@ -126,8 +119,16 @@ export function setupWebSocket(server: Server): WebSocketServer {
       sendJson({ type: 'config', net: link.settings, codec: currentPlayer?.codec ?? codec });
     };
 
-    const handleChat = (_msg: ChatMessage): void => {
-      // Chat message placeholder
+    const handleChat = (msg: ChatMessage): void => {
+      if (!currentRoom || !currentPlayer) return;
+      const chatEvent = {
+        type: 'chat',
+        sender: currentPlayer.name,
+        text: msg.text,
+      };
+      for (const p of currentRoom.players.values()) {
+        p.sendJson(chatEvent);
+      }
     };
 
     const dispatchClientMessage = (msg: ClientMessage): void => {
@@ -149,7 +150,7 @@ export function setupWebSocket(server: Server): WebSocketServer {
           break;
         default: {
           const _exhaustive: never = msg;
-          return _exhaustive;
+          throw new Error(`Unhandled message: ${String(_exhaustive)}`);
         }
       }
     };
@@ -184,14 +185,13 @@ export function setupWebSocket(server: Server): WebSocketServer {
           const msg = result.value;
           if (currentPlayer) currentPlayer.bytesIn += byteLen;
 
-          if (msg.type === 'input') {
-            handleInput(msg);
+          if (!rateLimiter.consume(1, Date.now())) {
+            socket.close(1008, 'Rate limit exceeded');
             return;
           }
 
-          messageCount++;
-          if (messageCount > 20) {
-            socket.close(1008, 'Rate limit exceeded');
+          if (msg.type === 'input') {
+            handleInput(msg);
             return;
           }
 
@@ -205,7 +205,6 @@ export function setupWebSocket(server: Server): WebSocketServer {
     });
 
     socket.on('close', () => {
-      clearInterval(rateLimitInterval);
       link.close();
       if (currentRoom && currentPlayer) {
         currentRoom.match.removePlayer(currentPlayer);

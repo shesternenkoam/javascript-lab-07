@@ -47,3 +47,4 @@ export function createInput(): () => KeyState {
 
   return (): KeyState => ({ ...keys });
 }
+

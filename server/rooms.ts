@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import type { WebSocket } from 'ws';
-import type { EntityId, PlayerInput, Seq } from 'shared';
+import type { EntityId, PlayerInput, Seq, World } from 'shared';
 import { createMatchLogStream, type MatchLogStream } from './log/matchlog.ts';
 import { Match } from './match.ts';
 import type { LinkSim } from './netsim.ts';
@@ -16,6 +16,8 @@ export interface Player {
   ack: number | Seq;
   bytesIn: number;
   bytesOut: number;
+  isBot?: boolean;
+  think?(world: World): void;
   sendJson(msg: unknown): void;
   sendRaw(data: string | Uint8Array): void;
 }

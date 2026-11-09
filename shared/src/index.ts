@@ -5,3 +5,8 @@ export * from './rng.ts';
 export * from './selftest.ts';
 export * from './types.ts';
 export * from './protocol.ts';
+export * from './vector.ts';
+export * from './pool.ts';
+export * from './spatialHash.ts';
+export * from './rateLimit.ts';
+export * from './reconcile.ts';

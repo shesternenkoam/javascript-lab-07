@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Testing & Coverage
+coverage
+test-results
+playwright-report
+blob-report
+.nyc_output

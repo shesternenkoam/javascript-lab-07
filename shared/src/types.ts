@@ -1,7 +1,4 @@
-export interface Vector2 {
-  readonly x: number;
-  readonly y: number;
-}
+export type { Vector2 } from './vector.ts';
 
 // Brand helper: only 1 justified type assertion for nominal branded types
 function brand<B extends string>(n: number): number & { readonly __brand: B } {

@@ -54,3 +54,4 @@ export class LinkSim {
     this.timers.clear();
   }
 }
+

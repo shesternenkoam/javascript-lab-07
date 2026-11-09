@@ -5,6 +5,7 @@ import {
   type World, type Ship, type PlayerInput, type InputMap,
 } from 'shared';
 import type { Room, Player } from './rooms.ts';
+import { Bot } from './bot.ts';
 
 const OVERRUN_RESYNC_TICKS = 5;
 
@@ -55,6 +56,16 @@ export class Match {
     return ship;
   }
 
+  addBots(count: number): Bot[] {
+    const bots: Bot[] = [];
+    for (let i = 0; i < count; i++) {
+      const bot = new Bot(`Bot_${i + 1}`);
+      this.addPlayer(bot);
+      bots.push(bot);
+    }
+    return bots;
+  }
+
   removePlayer(player: Player): void {
     removeShip(this.world, player.id);
     this.players.delete(player.id);
@@ -99,6 +110,9 @@ export class Match {
 
     const inputs: InputMap = {};
     for (const p of this.players.values()) {
+      if (p.think) {
+        p.think(this.world);
+      }
       const input = p.queue.shift();
       if (input) {
         inputs[p.id] = input;

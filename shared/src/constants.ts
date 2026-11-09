@@ -5,7 +5,7 @@ export const TICK_MS: number = 1000 / TICK_RATE;
 export const WORLD_W: number = 1280;
 export const WORLD_H: number = 720;
 
-export const MAX_PLAYERS: number = 4;
+export const MAX_PLAYERS: number = 128;
 
 export const SHIP_RADIUS: number = 15;
 export const SHIP_TURN_SPEED: number = Math.PI * 1.5;

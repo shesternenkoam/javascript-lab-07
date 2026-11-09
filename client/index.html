@@ -3,21 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lab 4 </title>
+    <title>Lab 7 - Space Arena</title>
     <style>
-      body { margin: 0; overflow: hidden; background-color: #111; }
+      body { margin: 0; overflow: hidden; background-color: #111; font-family: monospace; }
       #hud { position: absolute; top: 10px; left: 10px; color: white; font-family: monospace; z-index: 10; }
+      #roster { position: absolute; top: 10px; right: 20px; color: #a3e635; font-size: 14px; background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 4px; z-index: 20; }
+      #chat-box { position: absolute; bottom: 15px; left: 15px; width: 320px; z-index: 20; }
+      #chat-messages { height: 110px; overflow-y: auto; background: rgba(0,0,0,0.65); color: #fff; padding: 6px 8px; font-size: 12px; border-radius: 4px; margin-bottom: 5px; }
+      #chat-messages .chat-line { margin-bottom: 3px; word-break: break-word; }
+      #chat-form { display: flex; }
+      #chat-input { flex: 1; padding: 6px 8px; background: #222; border: 1px solid #555; color: white; border-radius: 3px; font-family: monospace; }
+      #chat-send { margin-left: 4px; background: #3b82f6; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 3px; font-family: monospace; font-weight: bold; }
     </style>
   </head>
   <body>
     <canvas id="gameCanvas"></canvas>
     
     <div id="hud"></div>
-    <div id="lobby-ui" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #222; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10;">
-    <h1>Космічна Арена</h1>
-    <h2>Виберіть кімнату:</h2>
-    <div id="room-list">Завантаження кімнат...</div>
-  </div>
+    <div id="roster">Гравці: завантаження...</div>
+
+    <div id="chat-box">
+      <div id="chat-messages"></div>
+      <form id="chat-form">
+        <input id="chat-input" type="text" placeholder="Повідомлення в чат..." />
+        <button id="chat-send" type="submit">Надіслати</button>
+      </form>
+    </div>
+
+    <div id="lobby-ui" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #222; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30;">
+      <h1>Космічна Арена</h1>
+      <h2>Виберіть або створіть кімнату:</h2>
+      <div id="room-list">Завантаження кімнат...</div>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

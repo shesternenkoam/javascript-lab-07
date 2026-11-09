@@ -7,6 +7,7 @@ import {
   type ServerConfigMessage,
   type PongMessage,
   type Snapshot,
+  type ServerChatMessage,
 } from 'shared';
 
 export type TrafficDirection = 'in' | 'out';
@@ -29,6 +30,7 @@ export class Connection {
   private onConfigHandler: ((msg: ServerConfigMessage) => void) | null = null;
   private onPongHandler: ((msg: PongMessage) => void) | null = null;
   private onSnapshotHandler: ((msg: Snapshot) => void) | null = null;
+  private onChatHandler: ((msg: ServerChatMessage) => void) | null = null;
 
   constructor(url: string) {
     this.url = url;
@@ -100,12 +102,15 @@ export class Connection {
       case 'snapshot':
         this.onSnapshotHandler?.(msg);
         break;
+      case 'chat':
+        this.onChatHandler?.(msg);
+        break;
       case 'error':
         console.warn('Server error received:', msg.error);
         break;
       default: {
         const _exhaustive: never = msg;
-        return _exhaustive;
+        throw new Error(`Unhandled message: ${String(_exhaustive)}`);
       }
     }
   }
@@ -128,20 +133,23 @@ export class Connection {
   on(type: 'config', callback: (msg: ServerConfigMessage) => void): void;
   on(type: 'pong', callback: (msg: PongMessage) => void): void;
   on(type: 'snapshot', callback: (msg: Snapshot) => void): void;
+  on(type: 'chat', callback: (msg: ServerChatMessage) => void): void;
   on(
-    type: 'welcome' | 'players' | 'config' | 'pong' | 'snapshot',
+    type: 'welcome' | 'players' | 'config' | 'pong' | 'snapshot' | 'chat',
     callback:
       | ((msg: WelcomeMessage) => void)
       | ((msg: PlayersMessage) => void)
       | ((msg: ServerConfigMessage) => void)
       | ((msg: PongMessage) => void)
-      | ((msg: Snapshot) => void),
+      | ((msg: Snapshot) => void)
+      | ((msg: ServerChatMessage) => void),
   ): void {
     if (type === 'welcome') this.onWelcomeHandler = callback as (msg: WelcomeMessage) => void;
     else if (type === 'players') this.onPlayersHandler = callback as (msg: PlayersMessage) => void;
     else if (type === 'config') this.onConfigHandler = callback as (msg: ServerConfigMessage) => void;
     else if (type === 'pong') this.onPongHandler = callback as (msg: PongMessage) => void;
     else if (type === 'snapshot') this.onSnapshotHandler = callback as (msg: Snapshot) => void;
+    else if (type === 'chat') this.onChatHandler = callback as (msg: ServerChatMessage) => void;
   }
 }
 

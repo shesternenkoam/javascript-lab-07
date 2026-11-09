@@ -40,3 +40,4 @@ export function createLoop(update: UpdateFn, render: RenderFn, updateHUD: Update
 
   requestAnimationFrame(frame);
 }
+

@@ -34,3 +34,4 @@ export class NetStats {
     if (h.length > max) h.shift();
   }
 }
+

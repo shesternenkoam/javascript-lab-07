@@ -11,6 +11,7 @@ import { createInput, type KeyState } from '../input.ts';
 import { eventBus } from '../events.ts';
 import type { Connection } from '../connection.ts';
 import type { LoadedAssets } from '../assets/loader.ts';
+import { ParticleSystem } from '../particles.ts';
 
 const PRESETS: Record<string, { lat: number; jitter: number; drop: number }> = {
   '1': { lat: 0, jitter: 0, drop: 0 },
@@ -29,6 +30,7 @@ export class NetGame {
   readonly predictor: Predictor;
   readonly interp: Interpolator;
   readonly stats: NetStats;
+  readonly particles: ParticleSystem = new ParticleSystem(500);
   interpDelay: number;
   codecName: 'json' | 'binary';
   net: { lat: number; jitter: number; drop: number };
@@ -85,6 +87,22 @@ export class NetGame {
     });
     connection.on('players', (m) => {
       this.players = new Map(m.players.map((p) => [p.id, p.name]));
+      const rosterEl = document.getElementById('roster');
+      if (rosterEl) {
+        rosterEl.textContent = 'Players: ' + m.players.map((p) => p.name).join(', ');
+      }
+    });
+    connection.on('chat', (m) => {
+      const chatBox = document.getElementById('chat-messages');
+      if (chatBox) {
+        const line = document.createElement('div');
+        line.className = 'chat-line';
+        line.textContent = `${m.sender}: ${m.text}`;
+        chatBox.appendChild(line);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+      const win = window as unknown as { __chatMessages?: unknown[] };
+      win.__chatMessages?.push(m);
     });
     connection.on('config', (m) => {
       if (m.net && typeof m.net === 'object') {
@@ -100,10 +118,20 @@ export class NetGame {
     connection.on('pong', (m) => this.stats.onPong(m.t));
     connection.on('snapshot', (snap) => this.onSnapshot(snap));
     window.simSelfTest = simSelfTest;
+    const win = window as unknown as { __netGame?: NetGame; __chatMessages?: unknown[] };
+    win.__netGame = this;
+    win.__chatMessages = [];
   }
 
   get codec(): Codec {
     return this.codecName === 'json' ? jsonCodec : binaryCodec;
+  }
+
+  get opponentPosition(): { x: number; y: number } | null {
+    const world = this.interp.sample(performance.now(), this.interpDelay);
+    if (!world) return null;
+    const opp = world.ships.find((s) => s.id !== this.predictor.myId);
+    return opp ? { x: opp.x, y: opp.y } : null;
   }
 
   onSnapshot(snap: Snapshot): void {
@@ -111,7 +139,12 @@ export class NetGame {
     this.stats.lastSnapshotAt = now;
     if (!this.interp.push(snap, now)) return;
     this.lastTick = snap.tick;
+    performance.mark('reconcile:start');
     this.predictor.onSnapshot(snap);
+    performance.mark('reconcile:end');
+    try {
+      performance.measure('reconcile', 'reconcile:start', 'reconcile:end');
+    } catch {}
     const sent = this.sentAt.get(snap.ack);
     if (sent !== undefined) this.ackLag = now - sent;
     for (const seq of this.sentAt.keys()) {
@@ -169,16 +202,31 @@ export class NetGame {
     const frameSec = Math.min((now - this.lastFrame) / 1000, 0.25);
     this.lastFrame = now;
     this.accumulator += frameSec;
+
+    performance.mark('simulate:start');
     while (this.accumulator >= DT) {
       this.simStep();
       this.accumulator -= DT;
     }
     this.predictor.decay(frameSec * 1000);
+    this.particles.update(frameSec);
+    performance.mark('simulate:end');
+    try {
+      performance.measure('simulate', 'simulate:start', 'simulate:end');
+    } catch {}
+
     if (now >= this.nextPing) {
       this.nextPing = now + PING_EVERY_MS;
       this.connection.send({ type: 'ping', t: now });
     }
+
+    performance.mark('render:start');
     this.render(now);
+    performance.mark('render:end');
+    try {
+      performance.measure('render', 'render:start', 'render:end');
+    } catch {}
+
     requestAnimationFrame((t) => this.frame(t));
   }
 
@@ -197,8 +245,19 @@ export class NetGame {
       const first = this.sentAt.keys().next().value;
       if (first !== undefined) this.sentAt.delete(first);
     }
+    const own = this.predictor.ship;
     if (this.predictor.applyLocal(input)) {
       eventBus.emit('fired', undefined);
+      if (own) {
+        const fx = own.x + Math.cos(own.angle) * SHIP_RADIUS;
+        const fy = own.y + Math.sin(own.angle) * SHIP_RADIUS;
+        this.particles.emit(fx, fy, 4, '#ffff00');
+      }
+    }
+    if (keys.w && own) {
+      const ex = own.x - Math.cos(own.angle) * SHIP_RADIUS;
+      const ey = own.y - Math.sin(own.angle) * SHIP_RADIUS;
+      this.particles.emit(ex, ey, 2, '#ffab40');
     }
     this.connection.sendRaw(this.codec.encodeInput(input));
   }
@@ -217,7 +276,7 @@ export class NetGame {
         break;
       default: {
         const _exhaustive: never = entity;
-        return _exhaustive;
+        throw new Error(`Unhandled entity: ${String(_exhaustive)}`);
       }
     }
   }
@@ -253,6 +312,8 @@ export class NetGame {
 
     const own = this.predictor.visual();
     if (own && own.respawn === 0) this.drawShip(own, this.colorOf(me), 'you');
+
+    this.particles.render(ctx);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.drawHud(own, now);
@@ -357,7 +418,9 @@ export class NetGame {
     ctx.fillRect(x - 10, 10, 300, 20 + lines.length * 16 + 50);
     ctx.fillStyle = '#b2ff59';
     ctx.font = '12px monospace';
-    lines.forEach((l, i) => ctx.fillText(l, x, 28 + i * 16));
+    lines.forEach((l, i) => {
+      ctx.fillText(l, x, 28 + i * 16);
+    });
     this.drawSpark(stats.history.correction, x, 28 + lines.length * 16 + 4, 280, 36, 10, '#ff5252');
   }
 

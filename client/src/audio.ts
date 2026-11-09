@@ -12,3 +12,4 @@ function playSound(name: string): void {
 export function initAudio(): void {
   eventBus.addEventListener('fired', () => playSound('shoot'));
 }
+

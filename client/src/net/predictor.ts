@@ -1,6 +1,6 @@
 import {
   DT, WORLD_W, WORLD_H, integrate, didFire, makeBullet, stepBullet, normalizeAngle,
-  asEntityId, asSeq,
+  asEntityId, asSeq, reconcile,
   type EntityId, type Seq, type Ship, type Bullet, type PlayerInput, type Snapshot,
   type BinaryFlag, type TurnDirection,
 } from 'shared';
@@ -64,35 +64,30 @@ export class Predictor {
   }
 
   onSnapshot(snap: Snapshot): void {
-    this.pending = this.pending.filter((i) => i.seq > snap.ack);
-    const own = snap.ships.find((s) => s.id === this.myId);
-    if (!own) return;
-
-    const before = this.ship;
-    let ship: Ship = { ...own };
     if (this.enabled) {
-      for (const input of this.pending) ship = integrate(ship, input, DT);
-    }
-
-    if (this.enabled && before) {
-      const dx = wrapDelta(before.x - ship.x, WORLD_W);
-      const dy = wrapDelta(before.y - ship.y, WORLD_H);
-      const da = normalizeAngle(before.angle - ship.angle);
-      const mag = Math.hypot(dx, dy);
-      this.correction = mag;
-      if (mag <= SNAP_DISTANCE) this.correctionAvg += (mag - this.correctionAvg) * 0.1;
-      if (mag > SNAP_DISTANCE) {
+      const res = reconcile(this.ship, this.pending, snap, this.myId, DT);
+      if (!res) return;
+      this.pending = res.remainingInputs;
+      this.correction = res.correction;
+      if (res.snapped) {
         this.offset = { x: 0, y: 0, angle: 0 };
       } else {
-        this.offset.x += dx;
-        this.offset.y += dy;
-        this.offset.angle += da;
+        this.offset.x += res.offsetDelta.x;
+        this.offset.y += res.offsetDelta.y;
+        this.offset.angle += res.offsetDelta.angle;
+        if (res.correction <= SNAP_DISTANCE) {
+          this.correctionAvg += (res.correction - this.correctionAvg) * 0.1;
+        }
       }
+      this.ship = res.replayedShip;
     } else {
+      this.pending = this.pending.filter((i) => i.seq > snap.ack);
+      const own = snap.ships.find((s) => s.id === this.myId);
+      if (!own) return;
+      this.ship = { ...own };
       this.correction = 0;
       this.offset = { x: 0, y: 0, angle: 0 };
     }
-    this.ship = ship;
 
     const serverSeqs = new Set<Seq>();
     for (const b of snap.bullets) {
@@ -119,3 +114,4 @@ export class Predictor {
     };
   }
 }
+

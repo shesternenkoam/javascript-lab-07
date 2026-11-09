@@ -40,7 +40,7 @@ export async function withRetry<T>(
       if (attempt >= attempts) throw error;
 
       const jitter = Math.random() * baseMs;
-      const delay = baseMs * Math.pow(2, attempt - 1) + jitter;
+      const delay = baseMs * 2 ** (attempt - 1) + jitter;
 
       await new Promise<void>((res) => {
         const timeout = setTimeout(res, delay);

@@ -20,6 +20,18 @@ const height = window.innerHeight;
 canvas.width = width;
 canvas.height = height;
 
+// Wire up chat form
+const chatForm = document.getElementById('chat-form') as HTMLFormElement | null;
+const chatInput = document.getElementById('chat-input') as HTMLInputElement | null;
+chatForm?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (!chatInput) return;
+  const text = chatInput.value.trim();
+  if (!text) return;
+  connection.send({ type: 'chat', text });
+  chatInput.value = '';
+});
+
 function drawLoadingScreen(progress: number, text: string = 'Завантаження...'): void {
   if (!ctx) return;
   ctx.fillStyle = '#111';
@@ -48,19 +60,23 @@ async function bootstrap(_roomData: { room: string; name: string }): Promise<voi
       onProgress: (ratio) => drawLoadingScreen(ratio, `Завантаження... ${Math.round(ratio * 100)}%`),
     });
 
-    drawLoadingScreen(1, 'Готово! Клікніть для старту');
+    const params = new URLSearchParams(window.location.search);
+    const autoPlay = params.get('autoplay') === '1' || params.get('test') === '1';
 
-    window.addEventListener(
-      'click',
-      () => {
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-        initAudio();
-        game.start(assets);
-      },
-      { once: true },
-    );
+    const startGame = (): void => {
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+      initAudio();
+      game.start(assets);
+    };
+
+    if (autoPlay) {
+      startGame();
+    } else {
+      drawLoadingScreen(1, 'Готово! Клікніть для старту');
+      window.addEventListener('click', () => startGame(), { once: true });
+    }
   } catch (error: unknown) {
     console.error('Помилка завантаження!', error instanceof Error ? error.message : String(error));
     drawLoadingScreen(0, 'Помилка завантаження (див. консоль).');
@@ -96,6 +112,28 @@ function initLobby(): void {
     canvas.style.display = 'block';
     bootstrap(detail);
   };
+
+  // Support URL auto-join for tests or direct links: ?room=abc&name=Player1
+  const params = new URLSearchParams(window.location.search);
+  const roomParam = params.get('room');
+  if (roomParam) {
+    const nameParam = params.get('name') || `Player_${Math.floor(Math.random() * 1000)}`;
+    const sendJoin = (): void => {
+      connection.send({
+        type: 'join',
+        room: roomParam,
+        name: nameParam,
+      });
+    };
+
+    if (connection.isConnected) {
+      sendJoin();
+    } else {
+      connection.socket?.addEventListener('open', sendJoin);
+    }
+    lobby.onJoin({ room: roomParam, name: nameParam });
+    return;
+  }
 
   lobby.start();
 }
