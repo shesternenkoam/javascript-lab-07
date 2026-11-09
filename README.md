@@ -76,9 +76,18 @@ $$\text{npm ci} \longrightarrow \text{typecheck} \longrightarrow \text{lint (Bio
 | **Топ-3 алокатори пам'яті** | 1. Частинки полум'я (`{x,y}`) <br> 2. `makeBullet` (`Bullet`) <br> 3. Closures у `render` | 1. Внутрішні буфери WebSocket <br> 2. TypedArray DataView <br> 3. Аудіо-події | Усунено алокації в гарячому циклі |
 | **Топ-3 функції за Self-Time**| 1. `stepWorld` ($O(N^2)$ колізії) <br> 2. GC Scavenger/Sweep <br> 3. `ctx.drawImage` | 1. `ctx.drawImage` (рендер) <br> 2. `SpatialHash.query` <br> 3. `decodeBinary` | Основний час витрачається на малювання |
 
-### Скріншоти Flame Chart
-- **До оптимізації (зубчаста купа пам'яті та довгі GC-блоки):** [`docs/flamechart-before.png`](docs/flamechart-before.png)
-- **Після оптимізації (плавний графік без пауз збирання сміття):** [`docs/flamechart-after.png`](docs/flamechart-after.png)
+### Візуальні докази та скріншоти
+
+#### 1. Геймплей з 8 ботами (стабільні 60 FPS, спавн ботів, чат, ростер)
+![Геймплей з 8 ботами](docs/gameplay-8-bots.png)
+
+#### 2. Профайлер Chrome DevTools: Flame Chart після оптимізацій
+> *Смуга кадрів Frames зафіксована на рівні 60 FPS (зелена зона, < 16.7 мс на кадр). Відсутні довгі жовті блоки Major GC (паузи збирання сміття повністю усунуто завдяки object pooling та in-place векторам).*
+
+![Flame Chart After](docs/flamechart-after.png)
+
+#### 3. Flame Chart до оптимізацій (зубчаста купа пам'яті та стрибки GC)
+![Flame Chart Before](docs/flamechart-before.png)
 
 ---
 
