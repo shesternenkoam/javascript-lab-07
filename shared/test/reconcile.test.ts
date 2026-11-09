@@ -91,3 +91,4 @@ describe('Reconciliation pure function', () => {
     expect(wrapDelta(1270 - 10, 1280)).toBe(-20);
   });
 });
+

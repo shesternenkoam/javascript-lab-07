@@ -97,3 +97,4 @@ describe('Game Loop & Accumulator with Fake Timers', () => {
     expect(hudUpdated).toBe(true);
   });
 });
+

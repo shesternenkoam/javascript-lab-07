@@ -1,6 +1,6 @@
 # Lab 7: V8, пам'ять і тести (Engines, Memory, and Tests)
 
-[![CI](https://github.com/shesternenkoam/javascript-lab-06/actions/workflows/ci.yml/badge.svg)](https://github.com/shesternenkoam/javascript-lab-06/actions/workflows/ci.yml)
+[![CI](https://github.com/shesternenkoam/javascript-lab-07/actions/workflows/ci.yml/badge.svg)](https://github.com/shesternenkoam/javascript-lab-07/actions/workflows/ci.yml)
 
 > **Мета:** довести надійність та детермінізм симуляції й мережевого протоколу авторитетного сервера тестами, усунути посмикування кадру (frame hitches) та GC-паузи через розуміння роботи рушія V8, дослідити межі масштабування під навантаженням ботів та перевірити доцільність використання Web Worker.
 

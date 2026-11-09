@@ -88,3 +88,4 @@ describe('ObjectPool', () => {
     expect(next.x).toBe(0);
   });
 });
+

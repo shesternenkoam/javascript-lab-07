@@ -77,3 +77,4 @@ export class SpatialHash<T extends SpatialItem> {
     return results;
   }
 }
+

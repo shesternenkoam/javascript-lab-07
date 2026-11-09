@@ -56,3 +56,4 @@ describe('SpatialHash 2D Grid', () => {
     expect(res).toEqual([]);
   });
 });
+

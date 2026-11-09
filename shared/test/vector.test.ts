@@ -110,3 +110,4 @@ describe('Vector2', () => {
     expect(scratchVec1.dot(scratchVec2)).toBe(11);
   });
 });
+

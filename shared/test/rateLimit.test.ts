@@ -51,3 +51,4 @@ describe('TokenBucket rate limiter', () => {
     expect(bucket.consume(1, 1100)).toBe(true);  // 1 token refilled
   });
 });
+
